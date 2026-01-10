@@ -1,0 +1,6 @@
+path: data/dog-pose
+train: images/train
+val: images/val
+names:
+  0: dog
+kpt_shape: [24, 3]
