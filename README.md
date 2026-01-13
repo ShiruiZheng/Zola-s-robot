@@ -113,6 +113,33 @@ Note: Model weights (.pt files) are not tracked in GitHub.
 After training, the best checkpoint is saved locally under:
 `runs/pose/train*/weights/best.pt`
 
+## Feature Schema (v1)
+Frame-level features extracted from 24 dog keypoints (Ultralytics Dog-Pose).
+All distances are normalized by scale = ||nose - tail_start|| when available.
+
+| Feature              | Type  | Range   | Meaning                                                       |                                                     |                                  |   |         |
+| -------------------- | ----- | ------- | ------------------------------------------------------------- | --------------------------------------------------- | -------------------------------- | - | ------- |
+| visible_ratio        | float | [0,1]   | Fraction of keypoints with v>0                                |                                                     |                                  |   |         |
+| head_visible_ratio   | float | [0,1]   | Fraction of head keypoints with v>0                           |                                                     |                                  |   |         |
+| limbs_visible_ratio  | float | [0,1]   | Fraction of limb keypoints with v>0                           |                                                     |                                  |   |         |
+| v_mean               | float | [0,2]   | Mean COCO visibility value over 24 kpts                       |                                                     |                                  |   |         |
+| v_min                | float | {0,1,2} | Minimum visibility over 24 kpts                               |                                                     |                                  |   |         |
+| v_head_min           | float | {0,1,2} | Minimum visibility over head kpts                             |                                                     |                                  |   |         |
+| v_limbs_min          | float | {0,1,2} | Minimum visibility over limb kpts                             |                                                     |                                  |   |         |
+| front_span           | float | ~[0,+]  |                                                               |                                                     | front_left_paw - front_right_paw |   | / scale |
+| rear_span            | float | ~[0,+]  |                                                               |                                                     | rear_left_paw - rear_right_paw   |   | / scale |
+| torso_len            | float | ~[0,+]  |                                                               |                                                     | withers - tail_start             |   | / scale |
+| tail_len             | float | ~[0,+]  |                                                               |                                                     | tail_start - tail_end            |   | / scale |
+| body_axis_angle      | float | [0,π]   | Angle between body axis (withers→tail_start) and horizontal   |                                                     |                                  |   |         |
+| head_body_angle      | float | [0,π]   | Angle between (withers→nose) and (withers→tail_start)         |                                                     |                                  |   |         |
+| front_leg_fold_angle | float | [0,π]   | Mean knee angle for both front legs (paw-knee-elbow)          |                                                     |                                  |   |         |
+| withers_to_paws_y    | float | ~[0,+]  | Vertical distance between withers and mean paw y, normalized  |                                                     |                                  |   |         |
+| front_symmetry       | float | ~[0,+]  |                                                               | dist(withers, FL paw) - dist(withers, FR paw)       | / scale                          |   |         |
+| rear_symmetry        | float | ~[0,+]  |                                                               | dist(tail_start, RL paw) - dist(tail_start, RR paw) | / scale                          |   |         |
+| head_yaw             | float | ~[-,+]  | Signed horizontal nose offset vs mid-eye, normalized by scale |                                                     |                                  |   |         |
+
+Missing data handling: If required keypoints are not available (v==0), features are returned as NaN.
+Fixed ordering for ML: See FeatureExtractor.FEATURE_NAMES.
 
 ## Step-by-Step Run Instructions
 
@@ -163,10 +190,20 @@ Then aggregate over short temporal windows for robust action recognition
 Compare classical temporal features with LSTM / Transformer
 Explore end-to-end video models as advanced baselines
 
+### 11 Jan 2026 Pose Feature Engineering (v1)
+Designed and implemented a frame-level pose feature extraction pipeline
+Features are derived from normalized distances, angles, symmetry, and visibility
+Introduced:
+Fixed-order feature vectors (ML-ready)
+Explicit feature schema for interpretability and debugging
+Verified feature behavior on short video clips
+Established pose → feature separation (clean interface for future models)
+
 ### Current status:
 - YOLO11-Pose successfully fine-tuned on Stanford Dog-Pose
 - Pose inference from image/video is complete
-- Feature extraction pipeline is implemented and under active development
+- Frame-level pose feature extractor implemented
+🔄 Feature set under active iteration and validation
 
 
 ## Overview:
@@ -178,7 +215,5 @@ Video / Image
 → Action recognition (future)
 
 ### What’s Next
-- Align keypoints with semantic names
-- Frame-level pose features
 - Temporal window features
 - Sequence models (LSTM / Transformer)
